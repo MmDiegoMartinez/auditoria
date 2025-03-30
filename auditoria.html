@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoría de Productos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #555;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 300px;
+            box-sizing: border-box;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #555;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 300px;
+        }
+        button:hover {
+            background-color: #444;
+        }
+        #mensaje {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+            input, button {
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+    </style>
+    <script>
+        let productos = {};
+
+        function agregarCodigo() {
+            let input = document.getElementById("codigo");
+            let codigo = input.value.trim();
+
+            if (/^PLOWS\d{6}$/.test(codigo)) {
+                if (!productos[codigo]) {
+                    productos[codigo] = 1;
+                } else {
+                    productos[codigo]++;
+                }
+                
+                mostrarMensaje(`PRODUCTO AGREGADO CON CÓDIGO ${codigo} – ${productos[codigo]}`, "#4CAF50");
+                
+                setTimeout(() => {
+                    input.value = "";
+                }, 500); // Espera 500ms antes de borrar el código
+            }
+        }
+
+        function mostrarMensaje(mensaje, color) {
+            let mensajeDiv = document.getElementById("mensaje");
+            mensajeDiv.innerText = mensaje;
+            mensajeDiv.style.color = color;
+        }
+
+        function descargarExcel() {
+            let csvContent = "Codigo,Cantidad Contada\n";
+            for (let codigo in productos) {
+                csvContent += `${codigo},${productos[codigo]}\n`;
+            }
+            
+            let blob = new Blob([csvContent], { type: "text/csv" });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "auditoria_productos.csv";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            productos = {}; // Reiniciar los datos
+            mostrarMensaje("Proceso finalizado y datos reiniciados", "#0000FF");
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            let input = document.getElementById("codigo");
+            input.addEventListener("input", function() {
+                let codigo = input.value.trim();
+                if (/^PLOWS\d{6}$/.test(codigo)) {
+                    agregarCodigo();
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Auditoría de Productos</h1>
+    <input type="text" id="codigo" placeholder="Escanea un código...">
+    <p id="mensaje"></p>
+    <button onclick="descargarExcel()">Terminar</button>
+</body>
+</html>
