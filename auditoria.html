@@ -11,6 +11,11 @@
             color: #333;
             text-align: center;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
         }
         h1 {
             color: #555;
@@ -23,18 +28,17 @@
             width: 100%;
             max-width: 300px;
             box-sizing: border-box;
+            text-align: center;
         }
         button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
+            margin-top: 10px;
+            padding: 8px 15px;
+            font-size: 14px;
             background-color: #555;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            width: 100%;
-            max-width: 300px;
         }
         button:hover {
             background-color: #444;
@@ -43,7 +47,40 @@
             margin-top: 15px;
             font-size: 18px;
             font-weight: bold;
-            color: #4CAF50;
+        }
+        #listaProductos {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 400px;
+            height: 250px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            text-align: left;
+        }
+        .producto {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        .producto span {
+            font-size: 16px;
+        }
+        .btnEliminar {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .btnEliminar:hover {
+            background-color: darkred;
         }
         @media (max-width: 600px) {
             body {
@@ -56,28 +93,62 @@
                 font-size: 14px;
                 padding: 8px;
             }
+            #listaProductos {
+                width: 100%;
+                max-width: 350px;
+            }
+            .producto span {
+                font-size: 14px;
+            }
+            #mensaje {
+                
+                font-size: 15px; /* Tamaño más pequeño */
+                
+            }
         }
     </style>
     <script>
         let productos = {};
+        let descripcionProductos = {};
 
-        function agregarCodigo() {
-            let input = document.getElementById("codigo");
-            let codigo = input.value.trim();
-
-            if (/^PLOWS\d{6}$/.test(codigo)) {
-                if (!productos[codigo]) {
-                    productos[codigo] = 1;
-                } else {
-                    productos[codigo]++;
-                }
-                
-                mostrarMensaje(`PRODUCTO AGREGADO CON CÓDIGO ${codigo} – ${productos[codigo]}`, "#4CAF50");
-                
-                setTimeout(() => {
-                    input.value = "";
-                }, 500); // Espera 500ms antes de borrar el código
+        async function cargarDatosExternos() {
+            try {
+                const res = await fetch('productos.json');
+                descripcionProductos = await res.json();
+            } catch (error) {
+                console.error("Error al cargar productos.json", error);
             }
+        }
+
+        function cargarDatos() {
+            let datosGuardados = localStorage.getItem("productos");
+            if (datosGuardados) {
+                productos = JSON.parse(datosGuardados);
+            }
+        }
+
+        function guardarDatos() {
+            localStorage.setItem("productos", JSON.stringify(productos));
+        }
+
+        function agregarCodigo(codigo) {
+            if (!productos[codigo]) {
+                productos[codigo] = { cantidad: 1, fecha: new Date().getTime() };
+            } else {
+                productos[codigo].cantidad++;
+                productos[codigo].fecha = new Date().getTime();
+            }
+
+            guardarDatos();
+
+            const descripcion = descripcionProductos[codigo];
+            if (descripcion) {
+                mostrarMensaje(`${descripcion} \n ${codigo} – ${productos[codigo].cantidad}`, "#4CAF50");
+            } else {
+                mostrarMensaje(`PRODUCTO AGREGADO: ${codigo} – ${productos[codigo].cantidad}`, "#4CAF50");
+            }
+
+            mostrarLista();
         }
 
         function mostrarMensaje(mensaje, color) {
@@ -86,30 +157,112 @@
             mensajeDiv.style.color = color;
         }
 
-        function descargarExcel() {
-            let csvContent = "Codigo,Cantidad Contada\n";
-            for (let codigo in productos) {
-                csvContent += `${codigo},${productos[codigo]}\n`;
+        function mostrarLista() {
+            let listaDiv = document.getElementById("listaProductos");
+            listaDiv.innerHTML = "";
+
+            let productosOrdenados = Object.entries(productos)
+                .sort((a, b) => b[1].fecha - a[1].fecha);
+
+            if (productosOrdenados.length === 0) {
+                listaDiv.innerHTML = "<p>No hay productos registrados.</p>";
+            } else {
+                productosOrdenados.forEach(([codigo, info]) => {
+                    let div = document.createElement("div");
+                    div.classList.add("producto");
+
+                    let span = document.createElement("span");
+                    span.textContent = `${codigo} – ${info.cantidad}`;
+
+                    let btnEliminar = document.createElement("button");
+                    btnEliminar.textContent = "X";
+                    btnEliminar.classList.add("btnEliminar");
+                    btnEliminar.onclick = function () {
+                        eliminarProducto(codigo);
+                    };
+
+                    div.appendChild(span);
+                    div.appendChild(btnEliminar);
+                    listaDiv.appendChild(div);
+                });
             }
-            
-            let blob = new Blob([csvContent], { type: "text/csv" });
-            let link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "auditoria_productos.csv";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            productos = {}; // Reiniciar los datos
-            mostrarMensaje("Proceso finalizado y datos reiniciados", "#0000FF");
         }
 
-        document.addEventListener("DOMContentLoaded", function() {
+        function eliminarProducto(codigo) {
+            if (productos[codigo]) {
+                productos[codigo].cantidad--;
+                if (productos[codigo].cantidad === 0) {
+                    delete productos[codigo];
+                }
+                guardarDatos();
+                mostrarLista();
+                mostrarMensaje(`Producto ${codigo} actualizado`, "#FF0000");
+            }
+        }
+
+        function descargarExcel() {
+    let nombreArchivo = prompt("Ingrese el nombre del archivo (sin extensión):", "auditoria_productos");
+    if (nombreArchivo === null) return;
+    if (!nombreArchivo) nombreArchivo = "auditoria_productos";
+
+    // 1. Preparar datos: encabezados + filas
+    const data = [["Codigo", "Nombre", "Cantidad Contada"]];
+    for (let codigo in productos) {
+        const descripcion = descripcionProductos[codigo] || "";
+        const cantidad = productos[codigo].cantidad;
+        data.push([codigo, descripcion, cantidad]);
+    }
+
+    // 2. Crear hoja desde matriz
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    // 3. Definir anchos de columna
+    ws['!cols'] = [
+        { wpx: 95 },   // Columna A
+        { wpx: 300 },  // Columna B
+        { wpx: 114 }   // Columna C
+    ];
+
+    // 4. Crear libro de trabajo
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Auditoría");
+
+    // 5. Definir rango de la tabla (sin encabezado: empieza en fila 2)
+    const totalRows = data.length;
+    const tableRef = `A1:C${totalRows}`;
+
+    // 6. Crear tabla con formato nativo de Excel
+    wb.Workbook = {
+        Names: [{
+            Name: "TablaAuditoria",
+            Ref: `'Auditoría'!${tableRef}`
+        }]
+    };
+    ws['!autofilter'] = { ref: tableRef };
+
+    // 7. Descargar archivo Excel con tabla
+    XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
+
+    // 8. Limpiar y reiniciar
+    productos = {};
+    localStorage.removeItem("productos");
+    mostrarMensaje("Proceso finalizado y datos reiniciados", "#0000FF");
+    mostrarLista();
+}
+
+
+
+        document.addEventListener("DOMContentLoaded", async function () {
+            await cargarDatosExternos();
+            cargarDatos();
+            mostrarLista();
+
             let input = document.getElementById("codigo");
-            input.addEventListener("input", function() {
+            input.addEventListener("input", function () {
                 let codigo = input.value.trim();
                 if (/^PLOWS\d{6}$/.test(codigo)) {
-                    agregarCodigo();
+                    agregarCodigo(codigo);
+                    input.value = "";
                 }
             });
         });
@@ -120,5 +273,10 @@
     <input type="text" id="codigo" placeholder="Escanea un código...">
     <p id="mensaje"></p>
     <button onclick="descargarExcel()">Terminar</button>
+
+    <div id="listaProductos"></div>
 </body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+
 </html>
