@@ -252,20 +252,82 @@
 
 
 
-        document.addEventListener("DOMContentLoaded", async function () {
-            await cargarDatosExternos();
-            cargarDatos();
-            mostrarLista();
+document.addEventListener("DOMContentLoaded", async function () {
+    await cargarDatosExternos();
+    cargarDatos();
+    mostrarLista();
 
-            let input = document.getElementById("codigo");
-            input.addEventListener("input", function () {
-                let codigo = input.value.trim();
-                if (/^PLOWS\d{6}$/.test(codigo)) {
-                    agregarCodigo(codigo);
-                    input.value = "";
-                }
-            });
-        });
+    let input = document.getElementById("codigo");
+
+    // 👉 Sonido beep simple
+    function beep() {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = "sine"; // Suave
+    oscillator.frequency.setValueAtTime(660, audioCtx.currentTime); // tono medio
+    gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime); // volumen bajo
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.15); // duración corta
+}
+
+
+    // 👉 Vibración (si está disponible)
+    function vibrar() {
+        if (navigator.vibrate) {
+            navigator.vibrate(200); // vibrar por 200ms
+        }
+    }
+
+    // 👉 Manejo de input progresivo
+    input.addEventListener("input", function () {
+        let codigo = input.value.trim().toUpperCase().replace(/[\n\r\s]/g, "");
+        input.value = codigo;
+
+        const letrasEsperadas = "PLOWS";
+
+        if (codigo.length <= letrasEsperadas.length) {
+            // Validar letra por letra
+            if (codigo !== letrasEsperadas.substring(0, codigo.length)) {
+                //  Letra incorrecta
+                beep();
+                vibrar();
+                input.value = "";
+            }
+        } else {
+            // Validar que los siguientes 6 caracteres sean números
+            const parteNumerica = codigo.substring(letrasEsperadas.length);
+
+            if (!/^\d{0,6}$/.test(parteNumerica)) {
+                //  Caracter inválido en parte numérica
+                beep();
+                vibrar();
+                input.value = "";
+                return;
+            }
+
+            if (parteNumerica.length === 6) {
+                // ✅ Código completo válido
+                agregarCodigo(codigo);
+                input.value = "";
+            }
+        }
+    });
+});
+function eliminarTodo() {
+    const confirmacion = confirm("¿Estás seguro que deseas eliminar todos los productos escaneados? Esta acción no se puede deshacer.");
+    if (!confirmacion) return;
+
+    productos = {};
+    localStorage.removeItem("productos");
+    mostrarLista();
+    mostrarMensaje("Todos los productos han sido eliminados", "#FF0000");
+}
     </script>
 </head>
 <body>
@@ -273,6 +335,8 @@
     <input type="text" id="codigo" placeholder="Escanea un código...">
     <p id="mensaje"></p>
     <button onclick="descargarExcel()">Terminar</button>
+    <button onclick="eliminarTodo()" style="background-color: crimson; margin-top: 10px;">Eliminar todo</button>
+
 
     <div id="listaProductos"></div>
 </body>
