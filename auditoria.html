@@ -15,7 +15,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            height: 120vh;
         }
         h1 {
             color: #555;
@@ -328,6 +328,25 @@ function eliminarTodo() {
     mostrarLista();
     mostrarMensaje("Todos los productos han sido eliminados", "#FF0000");
 }
+function enfocarInput() {
+    const input = document.getElementById("codigo");
+    if (document.activeElement !== input) {
+        input.focus();
+    }
+}
+
+// Enfocar al cargar
+window.addEventListener("load", enfocarInput);
+
+// Reenfocar si el usuario hace clic fuera
+document.addEventListener("click", enfocarInput);
+
+// Reenfocar si pierde el foco por cualquier razón
+document.getElementById("codigo").addEventListener("blur", () => {
+    setTimeout(() => {
+        document.getElementById("codigo").focus();
+    }, 100);
+});
     </script>
 </head>
 <body>
@@ -339,6 +358,24 @@ function eliminarTodo() {
 
 
     <div id="listaProductos"></div>
+   <footer style="
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 15px 10px;
+    width: 100%;
+    
+    font-size: 14px;
+    margin-top: auto;
+    border-top: 2px solid #444;
+">
+    <p style="margin: 0;">Desarrollado por Diego Fernando Martinez Santiago &copy; <span id="year"></span></p>
+</footer>
+<script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+</footer>
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
